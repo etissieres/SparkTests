@@ -1,4 +1,4 @@
-package com.viseo.spark.provider;
+package com.viseo.spark.injector;
 
 import java.io.InputStream;
 import java.net.InetSocketAddress;

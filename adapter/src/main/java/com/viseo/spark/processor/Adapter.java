@@ -3,6 +3,8 @@ package com.viseo.spark.processor;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
+import com.viseo.spark.domain.Pressure;
+import com.viseo.spark.domain.Temperature;
 import org.apache.spark.SparkConf;
 import org.apache.spark.streaming.Durations;
 import org.apache.spark.streaming.api.java.JavaDStream;
@@ -10,7 +12,7 @@ import org.apache.spark.streaming.api.java.JavaReceiverInputDStream;
 import org.apache.spark.streaming.api.java.JavaStreamingContext;
 import scala.Tuple2;
 
-public class Main {
+public class Adapter {
 
     public static void main(String... args) {
 
@@ -23,21 +25,27 @@ public class Main {
             JsonParser parser = new JsonParser();
             JsonElement item = parser.parse(rawMeasure);
             JsonObject jsonMeasure = item.getAsJsonObject();
+
             double kelvins = jsonMeasure.get("temperature").getAsDouble();
-            int bars = jsonMeasure.get("pressure").getAsInt();
-            return new InputMeasure(kelvins, bars);
+            double bars = jsonMeasure.get("pressure").getAsDouble();
+            InputMeasure inputMeasure = new InputMeasure(kelvins, bars);
+
+            System.out.println("Received : " + inputMeasure);
+            return inputMeasure;
         });
 
         JavaDStream<Tuple2<Temperature, Pressure>> measures = inputMeasures.map(inputMeasure -> {
-            Temperature temperature = new Temperature(inputMeasure.kelvins - 273.15);
-            Pressure pressure = new Pressure(inputMeasure.bars);
+            double celciusDegrees = TemperatureUtils.kelvinToCelcius(inputMeasure.getKelvinDegrees());
+            Temperature temperature = new Temperature(celciusDegrees);
+            Pressure pressure = new Pressure(inputMeasure.getBars());
+
+            System.out.println("Parsed : " + temperature + "; " + pressure);
             return new Tuple2<>(temperature, pressure);
         });
 
         measures.foreachRDD(rdd -> {
-            rdd.foreach(pair -> {
-                System.out.println("Température " + pair._1.degrees + " °C; Pression " + pair._2.bars + " bars");
-            });
+            System.out.println("Computing micro batch...");
+            rdd.foreach(tuple -> {});  // Just to force computation
         });
 
         sc.start();
