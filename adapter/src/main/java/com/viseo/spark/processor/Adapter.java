@@ -43,9 +43,15 @@ public class Adapter {
             return new Tuple2<>(temperature, pressure);
         });
 
-        measures.foreachRDD(rdd -> {
-            System.out.println("Computing micro batch...");
-            rdd.foreach(tuple -> {});  // Just to force computation
+        JavaDStream<Double> temperatures = measures.map(tuple -> tuple._1.getCelciusDegrees());
+
+        JavaDStream<Double> temperaturesWindows = temperatures.window(
+            Durations.seconds(60),  // window of 60 seconds...
+            Durations.seconds(3)  // ... computed every 3 seconds
+        );
+
+        temperaturesWindows.foreachRDD(rdd -> {
+            System.out.println("Mean temperature (last minute) : " + rdd.mapToDouble(x -> x).mean());
         });
 
         sc.start();
