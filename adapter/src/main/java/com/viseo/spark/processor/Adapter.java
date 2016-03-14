@@ -6,6 +6,7 @@ import com.google.gson.JsonParser;
 import com.viseo.spark.domain.Pressure;
 import com.viseo.spark.domain.Temperature;
 import org.apache.spark.SparkConf;
+import org.apache.spark.api.java.JavaDoubleRDD;
 import org.apache.spark.streaming.Durations;
 import org.apache.spark.streaming.api.java.JavaDStream;
 import org.apache.spark.streaming.api.java.JavaReceiverInputDStream;
@@ -51,7 +52,8 @@ public class Adapter {
         );
 
         temperaturesWindows.foreachRDD(rdd -> {
-            System.out.println("Mean temperature (last minute) : " + rdd.mapToDouble(x -> x).mean());
+            JavaDoubleRDD doubleRdd = rdd.mapToDouble(x -> x);  // Ugly, but I dont figure out how to avoid this
+            System.out.println("Mean temperature (last minute) : " + doubleRdd.mean());
         });
 
         sc.start();
